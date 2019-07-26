@@ -3,6 +3,7 @@ from django.core.cache import cache
 from lib.sms import send_sms
 from common import errors, keys
 from lib.http import render_json
+from user.forms import ProfileModelForm
 from user.models import User
 
 
@@ -44,3 +45,23 @@ def submit_vcode(request):
     else:
         return render_json(code=errors.VCODE_ERROR, data='验证码错误')
 
+
+def get_profile(request):
+    """获取用户交友资料"""
+    uid = request.session.get('uid')
+    user = User.objects.get(id=uid)
+    return render_json(data=user.profile.to_dict())
+
+
+def eidt_profile(request):
+    """使用django form 表单验证"""
+    form = ProfileModelForm(request.POST)
+
+    if form.is_valid():
+        # 数据合法的话就取出数据，并更新profile
+        profile = form.save(commit=False)  # 保存信息
+        profile.id = request.session.get('uid')
+        profile.save()
+        return render_json(data=profile.to_dict())
+    else:
+        return render_json(code=errors.PROFILE_ERROR, data=form.errors)
